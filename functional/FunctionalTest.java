@@ -1,5 +1,6 @@
 /*
- * Minio Java Library for Amazon S3 Compatible Cloud Storage, (C) 2015,2016 Minio, Inc.
+ * Minio Java Library for Amazon S3 Compatible Cloud Storage,
+ * (C) 2015, 2016, 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +43,7 @@ public class FunctionalTest {
   private static final int MB = 1024 * 1024;
   private static final SecureRandom random = new SecureRandom();
   private static final String bucketName = getRandomName();
-  private static final String customContenType = "application/javascript";
+  private static final String customContentType = "application/javascript";
   private static String endpoint;
   private static String accessKey;
   private static String secretKey;
@@ -203,15 +204,46 @@ public class FunctionalTest {
                        + "InputStream body)");
     String fileName = createFile(3 * MB);
     InputStream is = Files.newInputStream(Paths.get(fileName));
-    client.putObject(bucketName, fileName, is, 1024 * 1024, customContenType);
+    client.putObject(bucketName, fileName, is, 1024 * 1024, customContentType);
     is.close();
     Files.delete(Paths.get(fileName));
     ObjectStat objectStat = client.statObject(bucketName, fileName);
-    if (!customContenType.equals(objectStat.contentType())) {
+    if (!customContentType.equals(objectStat.contentType())) {
       throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String contentType, "
                           + "long size, InputStream body)");
     }
     client.removeObject(bucketName, fileName);
+  }
+
+  /**
+   * Test: With content-type: putObject(String bucketName, String objectName, String fileName, String contentType).
+   */
+  public static void putObject_test5() throws Exception {
+    System.out.println("Test: putObject(String bucketName, String objectName, String fileName,"
+                       + " String contentType)");
+    String fileName = createFile(13 * MB);
+    client.putObject(bucketName, fileName, fileName, customContentType);
+    Files.delete(Paths.get(fileName));
+    ObjectStat objectStat = client.statObject(bucketName, fileName);
+    if (!customContentType.equals(objectStat.contentType())) {
+      throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String fileName,"
+                          + " String contentType)");
+    }
+    client.removeObject(bucketName, fileName);
+  }
+
+  /**
+   * Test: putObject(String bucketName, String objectName, String fileName).
+   * where objectName has multiple path segments.
+   */
+  public static void putObject_test6() throws Exception {
+    System.out.println("Test: objectName with path segments: "
+                       + "putObject(String bucketName, String objectName, String fileName)");
+    String fileName = createFile(3 * MB);
+    String objectName = "path/to/" + fileName;
+    client.putObject(bucketName, objectName, fileName);
+    Files.delete(Paths.get(fileName));
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -822,6 +854,227 @@ public class FunctionalTest {
   }
 
   /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName).
+   */
+  public static void copyObject_test1() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + "String destObjectName)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    // File should be copied as there are no conditions set.
+    client.copyObject(bucketName, fileName, secondBucketName);
+    InputStream is = client.getObject(secondBucketName, fileName);
+    is.close();
+
+    client.removeObject(bucketName, fileName);
+    client.removeObject(secondBucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * CopyConditions copyConditions) with ETag to match.
+   */
+  public static void copyObject_test2() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + " String destObjectName, CopyConditions copyConditions) with Matching ETag (Negative Case)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    CopyConditions copyConditions = new CopyConditions();
+    copyConditions.setMatchETag("TestETag");
+
+    try {
+      client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+    } catch (ErrorResponseException e) {
+      ignore();
+    }
+
+    client.removeObject(bucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * CopyConditions copyConditions) with ETag to match.
+   */
+  public static void copyObject_test3() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + " String destObjectName, CopyConditions copyConditions) with Matching ETag (Positive Case)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    ObjectStat stat = client.statObject(bucketName, fileName);
+
+    CopyConditions copyConditions = new CopyConditions();
+    copyConditions.setMatchETag(stat.etag());
+
+    // File should be copied as ETag set in copyConditions matches object's ETag.
+    client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+    InputStream is = client.getObject(secondBucketName, fileName);
+    is.close();
+
+    client.removeObject(bucketName, fileName);
+    client.removeObject(secondBucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * CopyConditions copyConditions) with ETag to not match.
+   */
+  public static void copyObject_test4() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + " String destObjectName, CopyConditions copyConditions) with not matching ETag"
+                       + " (Positive Case)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    CopyConditions copyConditions = new CopyConditions();
+    copyConditions.setMatchETagNone("TestETag");
+
+    // File should be copied as ETag set in copyConditions doesn't match object's ETag.
+    client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+    InputStream is = client.getObject(secondBucketName, fileName);
+    is.close();
+
+    client.removeObject(bucketName, fileName);
+    client.removeObject(secondBucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * CopyConditions copyConditions) with ETag to not match.
+   */
+  public static void copyObject_test5() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + " String destObjectName, CopyConditions copyConditions) with not matching ETag"
+                       + " (Negative Case)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    ObjectStat stat = client.statObject(bucketName, fileName);
+
+    CopyConditions copyConditions = new CopyConditions();
+    copyConditions.setMatchETagNone(stat.etag());
+
+    try {
+      client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+    } catch (ErrorResponseException e) {
+      // File should not be copied as ETag set in copyConditions matches object's ETag.
+      ignore();
+    }
+    client.removeObject(bucketName, fileName);
+    client.removeObject(secondBucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * CopyConditions copyConditions) with object modified after condition.
+   */
+  public static void copyObject_test6() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + " String destObjectName, CopyConditions copyConditions) with modified after "
+                       + "condition (Positive Case)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    CopyConditions copyConditions = new CopyConditions();
+    DateTime dateRepresentation = new DateTime(2015, Calendar.MAY, 3, 10, 10);
+
+    copyConditions.setModified(dateRepresentation);
+
+    // File should be copied as object was modified after the set date.
+    client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+    InputStream is = client.getObject(secondBucketName, fileName);
+    is.close();
+
+    client.removeObject(bucketName, fileName);
+    client.removeObject(secondBucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
+   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * CopyConditions copyConditions) with object modified after condition.
+   */
+  public static void copyObject_test7() throws Exception {
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
+                       + " String destObjectName, CopyConditions copyConditions) with modified after"
+                       + " condition (Negative Case)");
+    String bucketName = getRandomName();
+    String secondBucketName = getRandomName();
+
+    String fileName = createFile(3 * MB);
+
+    client.makeBucket(bucketName);
+    client.makeBucket(secondBucketName);
+    client.putObject(bucketName, fileName, fileName);
+
+    CopyConditions copyConditions = new CopyConditions();
+    DateTime dateRepresentation = new DateTime(2015, Calendar.MAY, 3, 10, 10);
+
+    copyConditions.setUnmodified(dateRepresentation);
+
+    try {
+      client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+    } catch (ErrorResponseException e) {
+      // File should not be copied as object was modified after date set in copyConditions.
+      ignore();
+    }
+
+    client.removeObject(bucketName, fileName);
+    client.removeObject(secondBucketName, fileName);
+    client.removeBucket(bucketName);
+    client.removeBucket(secondBucketName);
+  }
+
+  /**
    * main().
    */
   public static void main(String[] args) {
@@ -858,9 +1111,10 @@ public class FunctionalTest {
       putObject_test2();
       putObject_test3();
       putObject_test4();
+      putObject_test5();
+      putObject_test6();
 
       statObject_test();
-
       getObject_test1();
       getObject_test2();
       getObject_test3();
@@ -888,6 +1142,14 @@ public class FunctionalTest {
       presignedPutObject_test2();
 
       presignedPostPolicy_test();
+
+      copyObject_test1();
+      copyObject_test2();
+      copyObject_test3();
+      copyObject_test4();
+      copyObject_test5();
+      copyObject_test6();
+      copyObject_test7();
 
       threadedPutObject();
 
