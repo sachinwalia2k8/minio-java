@@ -1,5 +1,5 @@
 /*
- * Minio Java Library for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
+ * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,9 +168,11 @@ public class PostPolicy {
 
   /**
    * Returns form data of this post policy.
+   * @deprecated Use {@link #formData(String accessKey, String secretKey, String region)} instead.
    */
+  @Deprecated
   public Map<String,String> formData(String accessKey, String secretKey)
-      throws InvalidKeyException, NoSuchAlgorithmException {
+    throws InvalidKeyException, NoSuchAlgorithmException {
     return makeFormData(accessKey, secretKey, BucketRegionCache.INSTANCE.region(this.bucketName));
   }
 

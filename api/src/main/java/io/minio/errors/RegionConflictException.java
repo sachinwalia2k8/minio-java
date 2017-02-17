@@ -1,5 +1,5 @@
 /*
- * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
+ * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,13 @@ package io.minio.errors;
 
 
 /**
- * Base Exception class for all minio-java exceptions.
+ * Thrown to indicate that passed region conflicts with the one previously specified.
  */
-public class MinioException extends Exception {
+public class RegionConflictException extends MinioException {
   /**
-   * Constructs a new MinioException.
+   * Constructs a new RegionConflictException with given error message.
    */
-  public MinioException() {
-    super();
-  }
-
-
-  /**
-   * Constructs a new MinioException with given error message.
-   */
-  public MinioException(String message) {
+  public RegionConflictException(String message) {
     super(message);
   }
 }
