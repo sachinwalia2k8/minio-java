@@ -19,7 +19,6 @@ import java.security.*;
 import java.math.BigInteger;
 import java.util.*;
 import java.io.*;
-import java.lang.*;
 
 import static java.nio.file.StandardOpenOption.*;
 import java.nio.file.*;
@@ -60,15 +59,15 @@ public class FunctionalTest {
    * Create given sized file and returns its name.
    */
   public static String createFile(int size) throws IOException {
-    String fileName = getRandomName();
+    String filename = getRandomName();
     byte[] data = new byte[size];
     random.nextBytes(data);
 
-    OutputStream out = new BufferedOutputStream(Files.newOutputStream(Paths.get(fileName), CREATE, APPEND));
+    OutputStream out = new BufferedOutputStream(Files.newOutputStream(Paths.get(filename), CREATE, APPEND));
     out.write(data, 0, data.length);
     out.close();
 
-    return fileName;
+    return filename;
   }
 
   /**
@@ -157,44 +156,44 @@ public class FunctionalTest {
   }
 
   /**
-   * Test: putObject(String bucketName, String objectName, String fileName).
+   * Test: putObject(String bucketName, String objectName, String filename).
    */
   public static void putObject_test1() throws Exception {
-    System.out.println("Test: putObject(String bucketName, String objectName, String fileName)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    System.out.println("Test: putObject(String bucketName, String objectName, String filename)");
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
   }
 
   /**
-   * Test: multipart: putObject(String bucketName, String objectName, String fileName).
+   * Test: multipart: putObject(String bucketName, String objectName, String filename).
    */
   public static void putObject_test2() throws Exception {
-    System.out.println("Test: multipart: putObject(String bucketName, String objectName, String fileName)");
-    String fileName = createFile(13 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    System.out.println("Test: multipart: putObject(String bucketName, String objectName, String filename)");
+    String filename = createFile(13 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
   }
 
   /**
-   * Test: multipart resume: putObject(String bucketName, String objectName, String fileName).
+   * Test: multipart resume: putObject(String bucketName, String objectName, String filename).
    */
   public static void putObject_test3() throws Exception {
-    System.out.println("Test: multipart resume: putObject(String bucketName, String objectName, String fileName)");
-    String fileName = createFile(13 * MB);
-    InputStream is = Files.newInputStream(Paths.get(fileName));
+    System.out.println("Test: multipart resume: putObject(String bucketName, String objectName, String filename)");
+    String filename = createFile(13 * MB);
+    InputStream is = Files.newInputStream(Paths.get(filename));
     try {
-      client.putObject(bucketName, fileName, is, 20 * 1024 * 1024, null);
+      client.putObject(bucketName, filename, is, 20 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore();
     }
     is.close();
 
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -203,47 +202,47 @@ public class FunctionalTest {
   public static void putObject_test4() throws Exception {
     System.out.println("Test: putObject(String bucketName, String objectName, String contentType, long size, "
                        + "InputStream body)");
-    String fileName = createFile(3 * MB);
-    InputStream is = Files.newInputStream(Paths.get(fileName));
-    client.putObject(bucketName, fileName, is, 1024 * 1024, customContentType);
+    String filename = createFile(3 * MB);
+    InputStream is = Files.newInputStream(Paths.get(filename));
+    client.putObject(bucketName, filename, is, 1024 * 1024, customContentType);
     is.close();
-    Files.delete(Paths.get(fileName));
-    ObjectStat objectStat = client.statObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    ObjectStat objectStat = client.statObject(bucketName, filename);
     if (!customContentType.equals(objectStat.contentType())) {
       throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String contentType, "
                           + "long size, InputStream body)");
     }
-    client.removeObject(bucketName, fileName);
+    client.removeObject(bucketName, filename);
   }
 
   /**
-   * Test: With content-type: putObject(String bucketName, String objectName, String fileName, String contentType).
+   * Test: With content-type: putObject(String bucketName, String objectName, String filename, String contentType).
    */
   public static void putObject_test5() throws Exception {
-    System.out.println("Test: putObject(String bucketName, String objectName, String fileName,"
+    System.out.println("Test: putObject(String bucketName, String objectName, String filename,"
                        + " String contentType)");
-    String fileName = createFile(13 * MB);
-    client.putObject(bucketName, fileName, fileName, customContentType);
-    Files.delete(Paths.get(fileName));
-    ObjectStat objectStat = client.statObject(bucketName, fileName);
+    String filename = createFile(13 * MB);
+    client.putObject(bucketName, filename, filename, customContentType);
+    Files.delete(Paths.get(filename));
+    ObjectStat objectStat = client.statObject(bucketName, filename);
     if (!customContentType.equals(objectStat.contentType())) {
-      throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String fileName,"
+      throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String filename,"
                           + " String contentType)");
     }
-    client.removeObject(bucketName, fileName);
+    client.removeObject(bucketName, filename);
   }
 
   /**
-   * Test: putObject(String bucketName, String objectName, String fileName).
+   * Test: putObject(String bucketName, String objectName, String filename).
    * where objectName has multiple path segments.
    */
   public static void putObject_test6() throws Exception {
     System.out.println("Test: objectName with path segments: "
-                       + "putObject(String bucketName, String objectName, String fileName)");
-    String fileName = createFile(3 * MB);
-    String objectName = "path/to/" + fileName;
-    client.putObject(bucketName, objectName, fileName);
-    Files.delete(Paths.get(fileName));
+                       + "putObject(String bucketName, String objectName, String filename)");
+    String filename = createFile(3 * MB);
+    String objectName = "path/to/" + filename;
+    client.putObject(bucketName, objectName, filename);
+    Files.delete(Paths.get(filename));
     client.removeObject(bucketName, objectName);
   }
 
@@ -252,11 +251,11 @@ public class FunctionalTest {
    */
   public static void statObject_test() throws Exception {
     System.out.println("Test: statObject(String bucketName, String objectName)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.statObject(bucketName, fileName);
-    client.removeObject(bucketName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    client.statObject(bucketName, filename);
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -264,12 +263,12 @@ public class FunctionalTest {
    */
   public static void getObject_test1() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    InputStream is = client.getObject(bucketName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    InputStream is = client.getObject(bucketName, filename);
     is.close();
-    client.removeObject(bucketName, fileName);
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -277,12 +276,12 @@ public class FunctionalTest {
    */
   public static void getObject_test2() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName, long offset)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    InputStream is = client.getObject(bucketName, fileName, 1000L);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    InputStream is = client.getObject(bucketName, filename, 1000L);
     is.close();
-    client.removeObject(bucketName, fileName);
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -290,40 +289,40 @@ public class FunctionalTest {
    */
   public static void getObject_test3() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName, long offset, Long length)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    InputStream is = client.getObject(bucketName, fileName, 1000L, 1024 * 1024L);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    InputStream is = client.getObject(bucketName, filename, 1000L, 1024 * 1024L);
     is.close();
-    client.removeObject(bucketName, fileName);
+    client.removeObject(bucketName, filename);
   }
 
   /**
-   * Test: getObject(String bucketName, String objectName, String fileName).
+   * Test: getObject(String bucketName, String objectName, String filename).
    */
   public static void getObject_test4() throws Exception {
-    System.out.println("Test: getObject(String bucketName, String objectName, String fileName)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.getObject(bucketName, fileName, fileName + ".downloaded");
-    Files.delete(Paths.get(fileName + ".downloaded"));
-    client.removeObject(bucketName, fileName);
+    System.out.println("Test: getObject(String bucketName, String objectName, String filename)");
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    client.getObject(bucketName, filename, filename + ".downloaded");
+    Files.delete(Paths.get(filename + ".downloaded"));
+    client.removeObject(bucketName, filename);
   }
 
   /**
-   * Test: getObject(String bucketName, String objectName, String fileName).
+   * Test: getObject(String bucketName, String objectName, String filename).
    * where objectName has multiple path segments.
    */
   public static void getObject_test5() throws Exception {
     System.out.println("Test: objectName with multiple path segments: "
-                       + "getObject(String bucketName, String objectName, String fileName)");
-    String fileName = createFile(3 * MB);
-    String objectName = "path/to/" + fileName;
-    client.putObject(bucketName, objectName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.getObject(bucketName, objectName, fileName + ".downloaded");
-    Files.delete(Paths.get(fileName + ".downloaded"));
+                       + "getObject(String bucketName, String objectName, String filename)");
+    String filename = createFile(3 * MB);
+    String objectName = "path/to/" + filename;
+    client.putObject(bucketName, objectName, filename);
+    Files.delete(Paths.get(filename));
+    client.getObject(bucketName, objectName, filename + ".downloaded");
+    Files.delete(Paths.get(filename + ".downloaded"));
     client.removeObject(bucketName, objectName);
   }
 
@@ -333,16 +332,16 @@ public class FunctionalTest {
   public static void listObject_test1() throws Exception {
     int i;
     System.out.println("Test: listObjects(final String bucketName)");
-    String[] fileNames = new String[3];
+    String[] filenames = new String[3];
     for (i = 0; i < 3; i++) {
-      String fileName = createFile(1 * MB);
-      client.putObject(bucketName, fileName, fileName);
-      Files.delete(Paths.get(fileName));
-      fileNames[i] = fileName;
+      String filename = createFile(1 * MB);
+      client.putObject(bucketName, filename, filename);
+      Files.delete(Paths.get(filename));
+      filenames[i] = filename;
     }
 
     i = 0;
-    for (Result r : client.listObjects(bucketName)) {
+    for (Result<?> r : client.listObjects(bucketName)) {
       ignore(i++, r.get());
       if (i == 10) {
         break;
@@ -350,7 +349,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, fileNames[i]);
+      client.removeObject(bucketName, filenames[i]);
     }
   }
 
@@ -360,16 +359,16 @@ public class FunctionalTest {
   public static void listObject_test2() throws Exception {
     int i;
     System.out.println("Test: listObjects(final String bucketName, final String prefix)");
-    String[] fileNames = new String[3];
+    String[] filenames = new String[3];
     for (i = 0; i < 3; i++) {
-      String fileName = createFile(1 * MB);
-      client.putObject(bucketName, fileName, fileName);
-      Files.delete(Paths.get(fileName));
-      fileNames[i] = fileName;
+      String filename = createFile(1 * MB);
+      client.putObject(bucketName, filename, filename);
+      Files.delete(Paths.get(filename));
+      filenames[i] = filename;
     }
 
     i = 0;
-    for (Result r : client.listObjects(bucketName, "minio")) {
+    for (Result<?> r : client.listObjects(bucketName, "minio")) {
       ignore(i++, r.get());
       if (i == 10) {
         break;
@@ -377,7 +376,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, fileNames[i]);
+      client.removeObject(bucketName, filenames[i]);
     }
   }
 
@@ -387,16 +386,16 @@ public class FunctionalTest {
   public static void listObject_test3() throws Exception {
     int i;
     System.out.println("Test: listObjects(final String bucketName, final String prefix, final boolean recursive)");
-    String[] fileNames = new String[3];
+    String[] filenames = new String[3];
     for (i = 0; i < 3; i++) {
-      String fileName = createFile(1 * MB);
-      client.putObject(bucketName, fileName, fileName);
-      Files.delete(Paths.get(fileName));
-      fileNames[i] = fileName;
+      String filename = createFile(1 * MB);
+      client.putObject(bucketName, filename, filename);
+      Files.delete(Paths.get(filename));
+      filenames[i] = filename;
     }
 
     i = 0;
-    for (Result r : client.listObjects(bucketName, "minio", true)) {
+    for (Result<?> r : client.listObjects(bucketName, "minio", true)) {
       ignore(i++, r.get());
       if (i == 10) {
         break;
@@ -404,7 +403,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, fileNames[i]);
+      client.removeObject(bucketName, filenames[i]);
     }
   }
 
@@ -416,7 +415,7 @@ public class FunctionalTest {
     System.out.println("Test: empty bucket: listObjects(final String bucketName)");
 
     i = 0;
-    for (Result r : client.listObjects(bucketName, "minio", true)) {
+    for (Result<?> r : client.listObjects(bucketName, "minio", true)) {
       ignore(i++, r.get());
       if (i == 10) {
         break;
@@ -425,14 +424,62 @@ public class FunctionalTest {
   }
 
   /**
+   * Test: listObjects(bucketName, final String prefix, final boolean recursive, final boolean useVersion1).
+   */
+  public static void listObject_test5() throws Exception {
+    int i;
+    System.out.println("Test: listObjects(final String bucketName, final String prefix, final boolean recursive,"
+                       + " final boolean useVersion1)");
+    String[] filenames = new String[3];
+    for (i = 0; i < 3; i++) {
+      String filename = createFile(1 * MB);
+      client.putObject(bucketName, filename, filename);
+      Files.delete(Paths.get(filename));
+      filenames[i] = filename;
+    }
+
+    i = 0;
+    for (Result<?> r : client.listObjects(bucketName, "minio", true, true)) {
+      ignore(i++, r.get());
+      if (i == 10) {
+        break;
+      }
+    }
+
+    for (i = 0; i < 3; i++) {
+      client.removeObject(bucketName, filenames[i]);
+    }
+  }
+
+  /**
    * Test: removeObject(String bucketName, String objectName).
    */
-  public static void removeObject_test() throws Exception {
+  public static void removeObject_test1() throws Exception {
     System.out.println("Test: removeObject(String bucketName, String objectName)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
+  }
+
+  /**
+   * Test: removeObject(final String bucketName, final Iterable&lt;String&gt; objectNames).
+   */
+  public static void removeObject_test2() throws Exception {
+    System.out.println("Test: removeObject(final String bucketName, final Iterable<String> objectNames)");
+
+    String[] filenames = new String[4];
+    for (int i = 0; i < 3; i++) {
+      String filename = createFile(1 * MB);
+      client.putObject(bucketName, filename, filename);
+      Files.delete(Paths.get(filename));
+      filenames[i] = filename;
+    }
+    filenames[3] = "nonexistent-object";
+
+    for (Result<?> r : client.removeObject(bucketName, Arrays.asList(filenames))) {
+      ignore(r.get());
+    }
   }
 
   /**
@@ -440,10 +487,10 @@ public class FunctionalTest {
    */
   public static void listIncompleteUploads_test1() throws Exception {
     System.out.println("Test: listIncompleteUploads(String bucketName)");
-    String fileName = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(fileName));
+    String filename = createFile(6 * MB);
+    InputStream is = Files.newInputStream(Paths.get(filename));
     try {
-      client.putObject(bucketName, fileName, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -457,8 +504,8 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeIncompleteUpload(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeIncompleteUpload(bucketName, filename);
   }
 
   /**
@@ -466,10 +513,10 @@ public class FunctionalTest {
    */
   public static void listIncompleteUploads_test2() throws Exception {
     System.out.println("Test: listIncompleteUploads(String bucketName, String prefix)");
-    String fileName = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(fileName));
+    String filename = createFile(6 * MB);
+    InputStream is = Files.newInputStream(Paths.get(filename));
     try {
-      client.putObject(bucketName, fileName, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -483,8 +530,8 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeIncompleteUpload(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeIncompleteUpload(bucketName, filename);
   }
 
   /**
@@ -493,10 +540,10 @@ public class FunctionalTest {
   public static void listIncompleteUploads_test3() throws Exception {
     System.out.println("Test: listIncompleteUploads(final String bucketName, final String prefix, "
                        + "final boolean recursive)");
-    String fileName = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(fileName));
+    String filename = createFile(6 * MB);
+    InputStream is = Files.newInputStream(Paths.get(filename));
     try {
-      client.putObject(bucketName, fileName, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -510,8 +557,8 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeIncompleteUpload(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeIncompleteUpload(bucketName, filename);
   }
 
   /**
@@ -519,10 +566,10 @@ public class FunctionalTest {
    */
   public static void removeIncompleteUploads_test() throws Exception {
     System.out.println("Test: removeIncompleteUpload(String bucketName, String objectName)");
-    String fileName = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(fileName));
+    String filename = createFile(6 * MB);
+    InputStream is = Files.newInputStream(Paths.get(filename));
     try {
-      client.putObject(bucketName, fileName, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -536,8 +583,8 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeIncompleteUpload(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeIncompleteUpload(bucketName, filename);
   }
 
   /**
@@ -545,10 +592,10 @@ public class FunctionalTest {
    */
   public static void presignedGetObject_test1() throws Exception {
     System.out.println("Test: presignedGetObject(String bucketName, String objectName)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
 
-    String urlString = client.presignedGetObject(bucketName, fileName);
+    String urlString = client.presignedGetObject(bucketName, filename);
     Request.Builder requestBuilder = new Request.Builder();
     Request request = requestBuilder
         .url(HttpUrl.parse(urlString))
@@ -559,7 +606,7 @@ public class FunctionalTest {
 
     if (response != null) {
       if (response.isSuccessful()) {
-        OutputStream os = Files.newOutputStream(Paths.get(fileName + ".downloaded"), StandardOpenOption.CREATE);
+        OutputStream os = Files.newOutputStream(Paths.get(filename + ".downloaded"), StandardOpenOption.CREATE);
         ByteStreams.copy(response.body().byteStream(), os);
         response.body().close();
         os.close();
@@ -567,10 +614,12 @@ public class FunctionalTest {
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+        Scanner scanner = new Scanner(response.body().charStream());
+        scanner.useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
+        scanner.close();
 
         throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName)"
                             + ", Response: " + response
@@ -581,15 +630,15 @@ public class FunctionalTest {
                           + ", Error: <No response from server>");
     }
 
-    if (!Arrays.equals(Files.readAllBytes(Paths.get(fileName)),
-                       Files.readAllBytes(Paths.get(fileName + ".downloaded")))) {
+    if (!Arrays.equals(Files.readAllBytes(Paths.get(filename)),
+                       Files.readAllBytes(Paths.get(filename + ".downloaded")))) {
       throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName)"
                           + ", Error: <Content differs>");
     }
 
-    Files.delete(Paths.get(fileName));
-    Files.delete(Paths.get(fileName + ".downloaded"));
-    client.removeObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    Files.delete(Paths.get(filename + ".downloaded"));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -597,10 +646,10 @@ public class FunctionalTest {
    */
   public static void presignedGetObject_test2() throws Exception {
     System.out.println("Test: presignedGetObject(String bucketName, String objectName, Integer expires)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
 
-    String urlString = client.presignedGetObject(bucketName, fileName, 3600);
+    String urlString = client.presignedGetObject(bucketName, filename, 3600);
     Request.Builder requestBuilder = new Request.Builder();
     Request request = requestBuilder
         .url(HttpUrl.parse(urlString))
@@ -611,7 +660,7 @@ public class FunctionalTest {
 
     if (response != null) {
       if (response.isSuccessful()) {
-        OutputStream os = Files.newOutputStream(Paths.get(fileName + ".downloaded"), StandardOpenOption.CREATE);
+        OutputStream os = Files.newOutputStream(Paths.get(filename + ".downloaded"), StandardOpenOption.CREATE);
         ByteStreams.copy(response.body().byteStream(), os);
         response.body().close();
         os.close();
@@ -619,10 +668,12 @@ public class FunctionalTest {
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+        Scanner scanner = new Scanner(response.body().charStream());
+        scanner.useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
+        scanner.close();
 
         throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName, Integer expires)"
                             + ", Response: " + response
@@ -633,15 +684,15 @@ public class FunctionalTest {
                           + ", Error: <No response from server>");
     }
 
-    if (!Arrays.equals(Files.readAllBytes(Paths.get(fileName)),
-                       Files.readAllBytes(Paths.get(fileName + ".downloaded")))) {
+    if (!Arrays.equals(Files.readAllBytes(Paths.get(filename)),
+                       Files.readAllBytes(Paths.get(filename + ".downloaded")))) {
       throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName, Integer expires)"
                           + ", Error: <Content differs>");
     }
 
-    Files.delete(Paths.get(fileName));
-    Files.delete(Paths.get(fileName + ".downloaded"));
-    client.removeObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    Files.delete(Paths.get(filename + ".downloaded"));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -650,13 +701,13 @@ public class FunctionalTest {
   public static void presignedGetObject_test3() throws Exception {
     System.out.println("Test: presignedGetObject(String bucketName, String objectName, Integer expires, "
                        + "Map<String, String> reqParams)");
-    String fileName = createFile(3 * MB);
-    client.putObject(bucketName, fileName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
 
     Map<String, String> reqParams = new HashMap<>();
     reqParams.put("response-content-type", "application/json");
 
-    String urlString = client.presignedGetObject(bucketName, fileName, 3600, reqParams);
+    String urlString = client.presignedGetObject(bucketName, filename, 3600, reqParams);
     Request.Builder requestBuilder = new Request.Builder();
     Request request = requestBuilder
         .url(HttpUrl.parse(urlString))
@@ -667,7 +718,7 @@ public class FunctionalTest {
 
     if (response != null) {
       if (response.isSuccessful()) {
-        OutputStream os = Files.newOutputStream(Paths.get(fileName + ".downloaded"), StandardOpenOption.CREATE);
+        OutputStream os = Files.newOutputStream(Paths.get(filename + ".downloaded"), StandardOpenOption.CREATE);
         ByteStreams.copy(response.body().byteStream(), os);
         if (!response.header("Content-Type").equals("application/json")) {
           throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName,"
@@ -680,10 +731,12 @@ public class FunctionalTest {
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+        Scanner scanner = new Scanner(response.body().charStream());
+        scanner.useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
+        scanner.close();
 
         throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName,"
                             + " Integer expires, Map<String, String> reqParams)"
@@ -696,16 +749,16 @@ public class FunctionalTest {
                           + ", Error: <No response from server>");
     }
 
-    if (!Arrays.equals(Files.readAllBytes(Paths.get(fileName)),
-                       Files.readAllBytes(Paths.get(fileName + ".downloaded")))) {
+    if (!Arrays.equals(Files.readAllBytes(Paths.get(filename)),
+                       Files.readAllBytes(Paths.get(filename + ".downloaded")))) {
       throw new Exception("[FAILED] Test: presignedGetObject(String bucketName, String objectName,"
                           + " Integer expires, Map<String, String> reqParams)"
                           + ", Error: <Content differs>");
     }
 
-    Files.delete(Paths.get(fileName));
-    Files.delete(Paths.get(fileName + ".downloaded"));
-    client.removeObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    Files.delete(Paths.get(filename + ".downloaded"));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -713,13 +766,13 @@ public class FunctionalTest {
    */
   public static void presignedPutObject_test1() throws Exception {
     System.out.println("Test: presignedPutObject(String bucketName, String objectName)");
-    String fileName = createFile(3 * MB);
-    String urlString = client.presignedPutObject(bucketName, fileName);
+    String filename = createFile(3 * MB);
+    String urlString = client.presignedPutObject(bucketName, filename);
 
     Request.Builder requestBuilder = new Request.Builder();
     Request request = requestBuilder
         .url(HttpUrl.parse(urlString))
-        .method("PUT", RequestBody.create(null, Files.readAllBytes(Paths.get(fileName))))
+        .method("PUT", RequestBody.create(null, Files.readAllBytes(Paths.get(filename))))
         .build();
     OkHttpClient transport = new OkHttpClient();
     Response response = transport.newCall(request).execute();
@@ -729,10 +782,12 @@ public class FunctionalTest {
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+        Scanner scanner = new Scanner(response.body().charStream());
+        scanner.useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
+        scanner.close();
 
         throw new Exception("[FAILED] Test: presignedPutObject(String bucketName, String objectName)"
                             + ", Response: " + response
@@ -743,8 +798,8 @@ public class FunctionalTest {
                           + ", Error: <No response from server>");
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -752,13 +807,13 @@ public class FunctionalTest {
    */
   public static void presignedPutObject_test2() throws Exception {
     System.out.println("Test: presignedPutObject(String bucketName, String objectName, Integer expires)");
-    String fileName = createFile(3 * MB);
-    String urlString = client.presignedPutObject(bucketName, fileName, 3600);
+    String filename = createFile(3 * MB);
+    String urlString = client.presignedPutObject(bucketName, filename, 3600);
 
     Request.Builder requestBuilder = new Request.Builder();
     Request request = requestBuilder
         .url(HttpUrl.parse(urlString))
-        .method("PUT", RequestBody.create(null, Files.readAllBytes(Paths.get(fileName))))
+        .method("PUT", RequestBody.create(null, Files.readAllBytes(Paths.get(filename))))
         .build();
     OkHttpClient transport = new OkHttpClient();
     Response response = transport.newCall(request).execute();
@@ -768,10 +823,12 @@ public class FunctionalTest {
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+        Scanner scanner = new Scanner(response.body().charStream());
+        scanner.useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
+        scanner.close();
 
         throw new Exception("[FAILED] Test: presignedPutObject(String bucketName, String objectName, Integer expires)"
                             + ", Response: " + response
@@ -782,8 +839,8 @@ public class FunctionalTest {
                           + ", Error: <No response from server>");
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -791,8 +848,8 @@ public class FunctionalTest {
    */
   public static void presignedPostPolicy_test() throws Exception {
     System.out.println("Test: presignedPostPolicy(PostPolicy policy)");
-    String fileName = createFile(3 * MB);
-    PostPolicy policy = new PostPolicy(bucketName, fileName, DateTime.now().plusDays(7));
+    String filename = createFile(3 * MB);
+    PostPolicy policy = new PostPolicy(bucketName, filename, DateTime.now().plusDays(7));
     policy.setContentRange(1 * MB, 4 * MB);
     Map<String, String> formData = client.presignedPostPolicy(policy);
 
@@ -801,7 +858,7 @@ public class FunctionalTest {
     for (Map.Entry<String, String> entry : formData.entrySet()) {
       multipartBuilder.addFormDataPart(entry.getKey(), entry.getValue());
     }
-    multipartBuilder.addFormDataPart("file", fileName, RequestBody.create(null, new File(fileName)));
+    multipartBuilder.addFormDataPart("file", filename, RequestBody.create(null, new File(filename)));
 
     Request.Builder requestBuilder = new Request.Builder();
     Request request = requestBuilder.url(endpoint + "/" + bucketName).post(multipartBuilder.build()).build();
@@ -813,10 +870,12 @@ public class FunctionalTest {
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+        Scanner scanner = new Scanner(response.body().charStream());
+        scanner.useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
+        scanner.close();
 
         throw new Exception("[FAILED] Test: presignedPostPolicy(PostPolicy policy)"
                             + ", Response: " + response
@@ -827,8 +886,8 @@ public class FunctionalTest {
                           + ", Error: <No response from server>");
     }
 
-    Files.delete(Paths.get(fileName));
-    client.removeObject(bucketName, fileName);
+    Files.delete(Paths.get(filename));
+    client.removeObject(bucketName, filename);
   }
 
   /**
@@ -855,174 +914,154 @@ public class FunctionalTest {
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName).
+   * Test: copyObject(String bucketName, String objectName, String destBucketName).
    */
   public static void copyObject_test1() throws Exception {
-    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + "String destObjectName)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
+    System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName)");
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
 
-    String fileName = createFile(3 * MB);
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
+    client.copyObject(bucketName, filename, destBucketName);
+    client.getObject(destBucketName, filename, filename + ".downloaded");
+    Files.delete(Paths.get(filename + ".downloaded"));
 
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
-
-    // File should be copied as there are no conditions set.
-    client.copyObject(bucketName, fileName, secondBucketName);
-    InputStream is = client.getObject(secondBucketName, fileName);
-    is.close();
-
-    client.removeObject(bucketName, fileName);
-    client.removeObject(secondBucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+    client.removeObject(bucketName, filename);
+    client.removeObject(destBucketName, filename);
+    client.removeBucket(destBucketName);
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * Test: copyObject(String bucketName, String objectName, String destBucketName,
    * CopyConditions copyConditions) with ETag to match.
    */
   public static void copyObject_test2() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + " String destObjectName, CopyConditions copyConditions) with Matching ETag (Negative Case)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
+                       + "CopyConditions copyConditions) with Matching ETag (Negative Case)");
 
-    String fileName = createFile(3 * MB);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
 
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
 
     CopyConditions copyConditions = new CopyConditions();
     copyConditions.setMatchETag("TestETag");
 
     try {
-      client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+      client.copyObject(bucketName, filename, destBucketName, copyConditions);
     } catch (ErrorResponseException e) {
       ignore();
     }
 
-    client.removeObject(bucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+    client.removeObject(bucketName, filename);
+    client.removeBucket(destBucketName);
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * Test: copyObject(String bucketName, String objectName, String destBucketName,
    * CopyConditions copyConditions) with ETag to match.
    */
   public static void copyObject_test3() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + " String destObjectName, CopyConditions copyConditions) with Matching ETag (Positive Case)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
+                       + "CopyConditions copyConditions) with Matching ETag (Positive Case)");
 
-    String fileName = createFile(3 * MB);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
 
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
 
-    ObjectStat stat = client.statObject(bucketName, fileName);
-
+    ObjectStat stat = client.statObject(bucketName, filename);
     CopyConditions copyConditions = new CopyConditions();
     copyConditions.setMatchETag(stat.etag());
 
     // File should be copied as ETag set in copyConditions matches object's ETag.
-    client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
-    InputStream is = client.getObject(secondBucketName, fileName);
-    is.close();
+    client.copyObject(bucketName, filename, destBucketName, copyConditions);
+    client.getObject(destBucketName, filename, filename + ".downloaded");
+    Files.delete(Paths.get(filename + ".downloaded"));
 
-    client.removeObject(bucketName, fileName);
-    client.removeObject(secondBucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+    client.removeObject(bucketName, filename);
+    client.removeObject(destBucketName, filename);
+    client.removeBucket(destBucketName);
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * Test: copyObject(String bucketName, String objectName, String destBucketName,
    * CopyConditions copyConditions) with ETag to not match.
    */
   public static void copyObject_test4() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + " String destObjectName, CopyConditions copyConditions) with not matching ETag"
+                       + "CopyConditions copyConditions) with not matching ETag"
                        + " (Positive Case)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
-
-    String fileName = createFile(3 * MB);
-
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
+    
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
 
     CopyConditions copyConditions = new CopyConditions();
     copyConditions.setMatchETagNone("TestETag");
 
     // File should be copied as ETag set in copyConditions doesn't match object's ETag.
-    client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
-    InputStream is = client.getObject(secondBucketName, fileName);
-    is.close();
+    client.copyObject(bucketName, filename, destBucketName, copyConditions);
+    client.getObject(destBucketName, filename, filename + ".downloaded");
+    Files.delete(Paths.get(filename + ".downloaded"));
 
-    client.removeObject(bucketName, fileName);
-    client.removeObject(secondBucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+    client.removeObject(bucketName, filename);
+    client.removeObject(destBucketName, filename);
+    client.removeBucket(destBucketName);
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * Test: copyObject(String bucketName, String objectName, String destBucketName,
    * CopyConditions copyConditions) with ETag to not match.
    */
   public static void copyObject_test5() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + " String destObjectName, CopyConditions copyConditions) with not matching ETag"
+                       + "CopyConditions copyConditions) with not matching ETag"
                        + " (Negative Case)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
 
-    String fileName = createFile(3 * MB);
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
 
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
-
-    ObjectStat stat = client.statObject(bucketName, fileName);
-
+    ObjectStat stat = client.statObject(bucketName, filename);
     CopyConditions copyConditions = new CopyConditions();
     copyConditions.setMatchETagNone(stat.etag());
 
     try {
-      client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+      client.copyObject(bucketName, filename, destBucketName, copyConditions);
     } catch (ErrorResponseException e) {
       // File should not be copied as ETag set in copyConditions matches object's ETag.
       ignore();
     }
-    client.removeObject(bucketName, fileName);
-    client.removeObject(secondBucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+
+    client.removeObject(bucketName, filename);
+    client.removeBucket(destBucketName);
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * Test: copyObject(String bucketName, String objectName, String destBucketName,
    * CopyConditions copyConditions) with object modified after condition.
    */
   public static void copyObject_test6() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + " String destObjectName, CopyConditions copyConditions) with modified after "
+                       + "CopyConditions copyConditions) with modified after "
                        + "condition (Positive Case)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
 
-    String fileName = createFile(3 * MB);
-
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
 
     CopyConditions copyConditions = new CopyConditions();
     DateTime dateRepresentation = new DateTime(2015, Calendar.MAY, 3, 10, 10);
@@ -1030,32 +1069,29 @@ public class FunctionalTest {
     copyConditions.setModified(dateRepresentation);
 
     // File should be copied as object was modified after the set date.
-    client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
-    InputStream is = client.getObject(secondBucketName, fileName);
-    is.close();
+    client.copyObject(bucketName, filename, destBucketName, copyConditions);
+    client.getObject(destBucketName, filename, filename + ".downloaded");
+    Files.delete(Paths.get(filename + ".downloaded"));
 
-    client.removeObject(bucketName, fileName);
-    client.removeObject(secondBucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+    client.removeObject(bucketName, filename);
+    client.removeObject(destBucketName, filename);
+    client.removeBucket(destBucketName);
   }
 
   /**
-   * Test: copyObject(String bucketName, String objectName, String destBucketName, String, destObjectName,
+   * Test: copyObject(String bucketName, String objectName, String destBucketName,
    * CopyConditions copyConditions) with object modified after condition.
    */
   public static void copyObject_test7() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
-                       + " String destObjectName, CopyConditions copyConditions) with modified after"
+                       + "CopyConditions copyConditions) with modified after"
                        + " condition (Negative Case)");
-    String bucketName = getRandomName();
-    String secondBucketName = getRandomName();
+    String filename = createFile(3 * MB);
+    client.putObject(bucketName, filename, filename);
+    Files.delete(Paths.get(filename));
 
-    String fileName = createFile(3 * MB);
-
-    client.makeBucket(bucketName);
-    client.makeBucket(secondBucketName);
-    client.putObject(bucketName, fileName, fileName);
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName);
 
     CopyConditions copyConditions = new CopyConditions();
     DateTime dateRepresentation = new DateTime(2015, Calendar.MAY, 3, 10, 10);
@@ -1063,16 +1099,162 @@ public class FunctionalTest {
     copyConditions.setUnmodified(dateRepresentation);
 
     try {
-      client.copyObject(bucketName, fileName, secondBucketName, copyConditions);
+      client.copyObject(bucketName, filename, destBucketName, copyConditions);
     } catch (ErrorResponseException e) {
       // File should not be copied as object was modified after date set in copyConditions.
-      ignore();
+      if (!e.errorResponse().code().equals("PreconditionFailed")) {
+        throw e;
+      }
     }
 
-    client.removeObject(bucketName, fileName);
-    client.removeObject(secondBucketName, fileName);
-    client.removeBucket(bucketName);
-    client.removeBucket(secondBucketName);
+    client.removeObject(bucketName, filename);
+    // Destination bucket is expected to be empty, otherwise it will trigger an exception.
+    client.removeBucket(destBucketName);
+  }
+
+  /**
+   * Test: setBucketNotification(String bucketName, NotificationConfiguration notificationConfiguration).
+   */
+  public static void setBucketNotification_test1() throws Exception {
+    // This test requires 'MINIO_JAVA_TEST_TOPIC' and 'MINIO_JAVA_TEST_REGION' environment variables.
+    String topic = System.getenv("MINIO_JAVA_TEST_TOPIC");
+    String region = System.getenv("MINIO_JAVA_TEST_REGION");
+    if (topic == null || topic.equals("") || region == null || region.equals("")) {
+      // do not run functional test as required environment variables are missing.
+      return;
+    }
+
+    System.out.println("Test: setBucketNotification(String bucketName, "
+                       + "NotificationConfiguration notificationConfiguration)");
+
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName, region);
+
+    NotificationConfiguration notificationConfiguration = new NotificationConfiguration();
+
+    // Add a new topic configuration.
+    List<TopicConfiguration> topicConfigurationList = notificationConfiguration.topicConfigurationList();
+    TopicConfiguration topicConfiguration = new TopicConfiguration();
+    topicConfiguration.setTopic(topic);
+
+    List<EventType> eventList = new LinkedList<>();
+    eventList.add(EventType.OBJECT_CREATED_PUT);
+    eventList.add(EventType.OBJECT_CREATED_COPY);
+    topicConfiguration.setEvents(eventList);
+
+    Filter filter = new Filter();
+    filter.setPrefixRule("images");
+    filter.setSuffixRule("pg");
+    topicConfiguration.setFilter(filter);
+
+    topicConfigurationList.add(topicConfiguration);
+    notificationConfiguration.setTopicConfigurationList(topicConfigurationList);
+
+    client.setBucketNotification(destBucketName, notificationConfiguration);
+
+    client.removeBucket(destBucketName);
+  }
+
+  /**
+   * Test: getBucketNotification(String bucketName).
+   */
+  public static void getBucketNotification_test1() throws Exception {
+    // This test requires 'MINIO_JAVA_TEST_TOPIC' and 'MINIO_JAVA_TEST_REGION' environment variables.
+    String topic = System.getenv("MINIO_JAVA_TEST_TOPIC");
+    String region = System.getenv("MINIO_JAVA_TEST_REGION");
+    if (topic == null || topic.equals("") || region == null || region.equals("")) {
+      // do not run functional test as required environment variables are missing.
+      return;
+    }
+
+    System.out.println("Test: getBucketNotification(String bucketName)");
+
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName, region);
+
+    NotificationConfiguration notificationConfiguration = new NotificationConfiguration();
+
+    // Add a new topic configuration.
+    List<TopicConfiguration> topicConfigurationList = notificationConfiguration.topicConfigurationList();
+    TopicConfiguration topicConfiguration = new TopicConfiguration();
+    topicConfiguration.setTopic(topic);
+
+    List<EventType> eventList = new LinkedList<>();
+    eventList.add(EventType.OBJECT_CREATED_PUT);
+    topicConfiguration.setEvents(eventList);
+
+    topicConfigurationList.add(topicConfiguration);
+    notificationConfiguration.setTopicConfigurationList(topicConfigurationList);
+
+    client.setBucketNotification(destBucketName, notificationConfiguration);
+    String expectedResult = notificationConfiguration.toString();
+
+    notificationConfiguration = client.getBucketNotification(destBucketName);
+
+    topicConfigurationList = notificationConfiguration.topicConfigurationList();
+    topicConfiguration = topicConfigurationList.get(0);
+    topicConfiguration.setId(null);
+    String result = notificationConfiguration.toString();
+
+    if (!result.equals(expectedResult)) {
+      System.out.println("FAILED. expected: " + expectedResult + ", got: " + result);
+    }
+
+    client.removeBucket(destBucketName);
+  }
+
+
+  /**
+   * Test: removeAllBucketNotification(String bucketName).
+   */
+  public static void removeAllBucketNotification_test1() throws Exception {
+    // This test requires 'MINIO_JAVA_TEST_TOPIC' and 'MINIO_JAVA_TEST_REGION' environment variables.
+    String topic = System.getenv("MINIO_JAVA_TEST_TOPIC");
+    String region = System.getenv("MINIO_JAVA_TEST_REGION");
+    if (topic == null || topic.equals("") || region == null || region.equals("")) {
+      // do not run functional test as required environment variables are missing.
+      return;
+    }
+
+    System.out.println("Test: removeAllBucketNotification(String bucketName)");
+
+    String destBucketName = getRandomName();
+    client.makeBucket(destBucketName, region);
+
+    NotificationConfiguration notificationConfiguration = new NotificationConfiguration();
+
+    // Add a new topic configuration.
+    List<TopicConfiguration> topicConfigurationList = notificationConfiguration.topicConfigurationList();
+    TopicConfiguration topicConfiguration = new TopicConfiguration();
+    topicConfiguration.setTopic(topic);
+
+    List<EventType> eventList = new LinkedList<>();
+    eventList.add(EventType.OBJECT_CREATED_PUT);
+    eventList.add(EventType.OBJECT_CREATED_COPY);
+    topicConfiguration.setEvents(eventList);
+
+    Filter filter = new Filter();
+    filter.setPrefixRule("images");
+    filter.setSuffixRule("pg");
+    topicConfiguration.setFilter(filter);
+
+    topicConfigurationList.add(topicConfiguration);
+    notificationConfiguration.setTopicConfigurationList(topicConfigurationList);
+
+    client.setBucketNotification(destBucketName, notificationConfiguration);
+
+    notificationConfiguration = new NotificationConfiguration();
+    String expectedResult = notificationConfiguration.toString();
+
+    client.removeAllBucketNotification(destBucketName);
+
+    notificationConfiguration = client.getBucketNotification(destBucketName);
+    String result = notificationConfiguration.toString();
+    if (!result.equals(expectedResult)) {
+      System.out.println("FAILED. expected: " + expectedResult + ", got: " + result);
+    }
+
+    client.removeBucket(destBucketName);
   }
 
   /**
@@ -1080,7 +1262,7 @@ public class FunctionalTest {
    */
   public static void runTests() throws Exception {
     makeBucket_test1();
-    if (!endpoint.toLowerCase().contains("minio")) {
+    if (endpoint.toLowerCase().contains("s3")) {
       makeBucket_test2();
       makeBucket_test3();
     }
@@ -1111,8 +1293,10 @@ public class FunctionalTest {
     listObject_test2();
     listObject_test3();
     listObject_test4();
+    listObject_test5();
 
-    removeObject_test();
+    removeObject_test1();
+    removeObject_test2();
 
     listIncompleteUploads_test1();
     listIncompleteUploads_test2();
@@ -1140,6 +1324,12 @@ public class FunctionalTest {
     threadedPutObject();
 
     teardown();
+
+    // notification tests requires 'MINIO_JAVA_TEST_TOPIC' and 'MINIO_JAVA_TEST_REGION' environment variables
+    // to be set appropriately.
+    setBucketNotification_test1();
+    getBucketNotification_test1();
+    removeAllBucketNotification_test1();
   }
 
   /**
@@ -1150,18 +1340,21 @@ public class FunctionalTest {
     listBuckets_test();
     bucketExists_test();
     removeBucket_test();
+
     setup();
+
     putObject_test1();
     statObject_test();
     getObject_test1();
     listObject_test1();
-    removeObject_test();
+    removeObject_test1();
     listIncompleteUploads_test1();
     removeIncompleteUploads_test();
     presignedGetObject_test1();
     presignedPutObject_test1();
     presignedPostPolicy_test();
     copyObject_test1();
+
     teardown();
   }
 
@@ -1192,7 +1385,6 @@ public class FunctionalTest {
 
     } catch (Exception e) {
       e.printStackTrace();
-      return;
     }
   }
 }

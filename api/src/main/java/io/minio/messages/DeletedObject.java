@@ -1,5 +1,5 @@
 /*
- * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
+ * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,44 +22,27 @@ import com.google.api.client.util.Key;
 
 
 /**
- * Helper class to parse Amazon AWS S3 response XML containing initiate multipart upload result.
+ * Helper class to create Amazon AWS S3 request XML containing information for Multiple object deletion.
  */
 @SuppressWarnings({"SameParameterValue", "unused"})
-public class InitiateMultipartUploadResult extends XmlEntity {
-  @Key("Bucket")
-  private String bucketName;
+public class DeletedObject extends XmlEntity {
   @Key("Key")
-  private String objectName;
-  @Key("UploadId")
-  private String uploadId;
+  private String name;
+  @Key("VersionId")
+  private String versionId;
+  @Key("DeleteMarker")
+  private boolean deleteMarker;
+  @Key("DeleteMarkerVersionId")
+  private String deleteMarkerVersionId;
 
 
-  public InitiateMultipartUploadResult() throws XmlPullParserException {
+  public DeletedObject() throws XmlPullParserException {
     super();
-    this.name = "InitiateMultipartUploadResult";
+    super.name = "Deleted";
   }
 
 
-  /**
-   * Returns bucket name.
-   */
-  public String bucketName() {
-    return bucketName;
-  }
-
-
-  /**
-   * Returns object name.
-   */
-  public String objectName() {
-    return objectName;
-  }
-
-
-  /**
-   * Returns upload ID.
-   */
-  public String uploadId() {
-    return uploadId;
+  public String name() {
+    return name;
   }
 }

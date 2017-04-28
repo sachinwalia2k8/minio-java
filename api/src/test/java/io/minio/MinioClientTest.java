@@ -17,38 +17,45 @@
 
 package io.minio;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.Assert.assertEquals;
 
-import com.squareup.okhttp.mockwebserver.MockWebServer;
-import com.squareup.okhttp.mockwebserver.MockResponse;
-
-import okio.Buffer;
-
-import io.minio.errors.*;
-import io.minio.messages.Bucket;
-import io.minio.messages.ErrorResponse;
-import io.minio.messages.Item;
-import io.minio.messages.Owner;
-import io.minio.policy.*;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.Test;
+import org.xmlpull.v1.XmlPullParserException;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.squareup.okhttp.mockwebserver.MockResponse;
+import com.squareup.okhttp.mockwebserver.MockWebServer;
+
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InvalidArgumentException;
+import io.minio.errors.InvalidExpiresRangeException;
+import io.minio.errors.InvalidEndpointException;
+import io.minio.errors.MinioException;
+import io.minio.errors.RegionConflictException;
+import io.minio.messages.Bucket;
+import io.minio.messages.ErrorResponse;
+import io.minio.messages.Item;
+import io.minio.messages.Owner;
+import io.minio.policy.BucketPolicy;
+import io.minio.policy.PolicyType;
+import okio.Buffer;
 
 @SuppressWarnings("unused")
 public class MinioClientTest {
@@ -66,7 +73,6 @@ public class MinioClientTest {
   private static final String ACCEPT_RANGES = "Accept-Ranges";
   private static final String CONTENT_RANGE = "Content-Range";
   private static final String SUN_29_JUN_2015_22_01_10_GMT = "Sun, 29 Jun 2015 22:01:10 GMT";
-  private static final String MON_04_MAY_2015_07_58_51_UTC = "Mon, 04 May 2015 07:58:51 UTC";
   private static final String BUCKET_KEY = "/bucket/key";
   private static final String MD5_HASH_STRING = "\"5eb63bbbe01eeed093cb22bb8f5acdc3\"";
   private static final ObjectMapper objectMapper =
@@ -89,6 +95,30 @@ public class MinioClientTest {
   public void newClientWithNullUrlFails() throws NullPointerException, MinioException {
     URL url = null;
     new MinioClient(url);
+    throw new RuntimeException(EXPECTED_EXCEPTION_DID_NOT_FIRE);
+  }
+
+  @Test(expected = InvalidEndpointException.class)
+  public void testIsValidEndpoint1() throws MinioException {
+    new MinioClient("minio-.example.com");
+    throw new RuntimeException(EXPECTED_EXCEPTION_DID_NOT_FIRE);
+  }
+
+  @Test(expected = InvalidEndpointException.class)
+  public void testIsValidEndpoint2() throws MinioException {
+    new MinioClient("-minio.example.com");
+    throw new RuntimeException(EXPECTED_EXCEPTION_DID_NOT_FIRE);
+  }
+
+  @Test(expected = InvalidEndpointException.class)
+  public void testIsValidEndpoint3() throws MinioException {
+    new MinioClient("minio..example.com");
+    throw new RuntimeException(EXPECTED_EXCEPTION_DID_NOT_FIRE);
+  }
+
+  @Test(expected = InvalidEndpointException.class)
+  public void testIsValidEndpoint4() throws MinioException {
+    new MinioClient("minio._.com");
     throw new RuntimeException(EXPECTED_EXCEPTION_DID_NOT_FIRE);
   }
 
@@ -503,7 +533,7 @@ public class MinioClientTest {
     MockResponse response = new MockResponse();
 
     response.addHeader("Date", SUN_29_JUN_2015_22_01_10_GMT);
-    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_UTC);
+    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_GMT);
     response.addHeader("ETag", MD5_HASH_STRING);
     response.setResponseCode(200);
 
@@ -601,7 +631,7 @@ public class MinioClientTest {
     MockResponse response = new MockResponse();
 
     response.addHeader("Date", SUN_29_JUN_2015_22_01_10_GMT);
-    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_UTC);
+    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_GMT);
     response.addHeader("ETag", MD5_HASH_STRING);
     response.setResponseCode(200);
 
@@ -627,7 +657,7 @@ public class MinioClientTest {
     MockResponse response = new MockResponse();
 
     response.addHeader("Date", SUN_29_JUN_2015_22_01_10_GMT);
-    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_UTC);
+    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_GMT);
     response.addHeader("ETag", MD5_HASH_STRING);
     response.setResponseCode(200);
 
@@ -649,7 +679,7 @@ public class MinioClientTest {
     MockResponse response = new MockResponse();
 
     response.addHeader("Date", SUN_29_JUN_2015_22_01_10_GMT);
-    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_UTC);
+    response.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_GMT);
     response.addHeader("ETag", MD5_HASH_STRING);
     response.setResponseCode(200);
 
@@ -680,7 +710,7 @@ public class MinioClientTest {
     response2.addHeader(CONTENT_LENGTH, "5080");
     response2.addHeader(CONTENT_TYPE, APPLICATION_OCTET_STREAM);
     response2.addHeader("ETag", "\"a670520d9d36833b3e28d1e4b73cbe22\"");
-    response2.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_UTC);
+    response2.addHeader(LAST_MODIFIED, MON_04_MAY_2015_07_58_51_GMT);
     response2.setResponseCode(200);
     server.enqueue(response2);
 

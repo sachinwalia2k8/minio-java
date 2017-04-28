@@ -42,16 +42,22 @@ import io.minio.messages.Bucket;
 import io.minio.messages.CompleteMultipartUpload;
 import io.minio.messages.CopyObjectResult;
 import io.minio.messages.CreateBucketConfiguration;
+import io.minio.messages.DeleteError;
+import io.minio.messages.DeleteObject;
+import io.minio.messages.DeleteRequest;
+import io.minio.messages.DeleteResult;
 import io.minio.messages.ErrorResponse;
 import io.minio.messages.InitiateMultipartUploadResult;
 import io.minio.messages.Item;
 import io.minio.messages.ListAllMyBucketsResult;
 import io.minio.messages.ListBucketResult;
+import io.minio.messages.ListBucketResultV1;
 import io.minio.messages.ListMultipartUploadsResult;
 import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
 import io.minio.messages.Prefix;
 import io.minio.messages.Upload;
+import io.minio.messages.NotificationConfiguration;
 import io.minio.org.apache.commons.validator.routines.InetAddressValidator;
 import io.minio.policy.PolicyType;
 import io.minio.policy.BucketPolicy;
@@ -63,7 +69,6 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedInputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -89,7 +94,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -617,7 +621,7 @@ public final class MinioClient {
         return false;
       }
 
-      if (!(label.matches("^[a-zA-Z0-9][a-zA-Z0-9-]*") && endpoint.matches(".*[a-zA-Z0-9]$"))) {
+      if (!(label.matches("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"))) {
         return false;
       }
     }
@@ -629,8 +633,7 @@ public final class MinioClient {
    * Validates if given objectPrefix is valid.
    */
   private void checkObjectPrefix(String prefix) throws InvalidObjectPrefixException {
-    // TODO(nl5887): what to do with wildcards in objectPrefix?
-    //
+    // TODO(nl5887): what to do with wild-cards in objectPrefix?
     if (prefix.length() > 1024) {
       throw new InvalidObjectPrefixException(prefix, "Object prefix cannot be greater than 1024 characters.");
     }
@@ -950,22 +953,24 @@ public final class MinioClient {
 
     // HEAD returns no body, and fails on parseXml
     if (!method.equals(Method.HEAD)) {
+      Scanner scanner = new Scanner(response.body().charStream());
       try {
+        scanner.useDelimiter("\\A");
         String errorXml = "";
 
         // read entire body stream to string.
-        Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
         if (scanner.hasNext()) {
           errorXml = scanner.next();
         }
 
         errorResponse = new ErrorResponse(new StringReader(errorXml));
-
         if (this.traceStream != null) {
           this.traceStream.println(errorXml);
         }
+
       } finally {
         response.body().close();
+        scanner.close();
       }
     }
 
@@ -1041,8 +1046,8 @@ public final class MinioClient {
       String location = null;
 
       xpp.setInput(response.body().charStream());
-      while (xpp.getEventType() != xpp.END_DOCUMENT) {
-        if (xpp.getEventType() ==  xpp.START_TAG && xpp.getName() == "LocationConstraint") {
+      while (xpp.getEventType() != XmlPullParser.END_DOCUMENT) {
+        if (xpp.getEventType() ==  XmlPullParser.START_TAG && xpp.getName() == "LocationConstraint") {
           xpp.next();
           location = getText(xpp, location);
           break;
@@ -1091,7 +1096,7 @@ public final class MinioClient {
    * Returns text of given XML element.
    */
   private String getText(XmlPullParser xpp, String location) throws XmlPullParserException {
-    if (xpp.getEventType() == xpp.TEXT) {
+    if (xpp.getEventType() == XmlPullParser.TEXT) {
       return xpp.getText();
     }
     return location;
@@ -1885,6 +1890,160 @@ public final class MinioClient {
   }
 
 
+  private List<DeleteError> removeObject(String bucketName, List<DeleteObject> objectList)
+    throws InvalidBucketNameException, NoSuchAlgorithmException, InsufficientDataException, IOException,
+           InvalidKeyException, NoResponseException, XmlPullParserException, ErrorResponseException,
+           InternalException {
+    Map<String,String> queryParamMap = new HashMap<>();
+    queryParamMap.put("delete", "");
+
+    DeleteRequest request = new DeleteRequest(objectList);
+    HttpResponse response = executePost(bucketName, null, null, queryParamMap, request);
+
+    String bodyContent = "";
+    // Use scanner to read entire body stream to string.
+    Scanner scanner = new Scanner(response.body().charStream());
+    try {
+      scanner.useDelimiter("\\A");
+      if (scanner.hasNext()) {
+        bodyContent = scanner.next();
+      }
+    } finally {
+      response.body().close();
+      scanner.close();
+    }
+
+    List<DeleteError> errorList = null;
+
+    bodyContent = bodyContent.trim();
+    // Check if body content is <Error> message.
+    DeleteError error = new DeleteError(new StringReader(bodyContent));
+    if (error.code() != null) {
+      // As it is <Error> message, add to error list.
+      errorList = new LinkedList<DeleteError>();
+      errorList.add(error);
+    } else {
+      // As it is not <Error> message, parse it as <DeleteResult> message.
+      DeleteResult result = new DeleteResult(new StringReader(bodyContent));
+      errorList = result.errorList();
+    }
+
+    return errorList;
+  }
+
+
+  /**
+   * Removes multiple objects from a bucket.
+   *
+   * </p><b>Example:</b><br>
+   * <pre>{@code // Create object list for removal.
+   * List<String> objectNames = new LinkedList<String>();
+   * objectNames.add("my-objectname1");
+   * objectNames.add("my-objectname2");
+   * objectNames.add("my-objectname3");
+   * for (Result<DeleteError> errorResult: minioClient.removeObject("my-bucketname", objectNames)) {
+   *     DeleteError error = errorResult.get();
+   *     System.out.println("Failed to remove '" + error.objectName() + "'. Error:" + error.message());
+   * } }</pre>
+   *
+   * @param bucketName Bucket name.
+   * @param objectNames List of Object names in the bucket.
+   */
+  public Iterable<Result<DeleteError>> removeObject(final String bucketName, final Iterable<String> objectNames) {
+    return new Iterable<Result<DeleteError>>() {
+      @Override
+      public Iterator<Result<DeleteError>> iterator() {
+        return new Iterator<Result<DeleteError>>() {
+          private Result<DeleteError> error;
+          private Iterator<DeleteError> errorIterator;
+          private boolean completed = false;
+
+          private synchronized void populate() {
+            List<DeleteError> errorList = null;
+            try {
+              List<DeleteObject> objectList = new LinkedList<DeleteObject>();
+              int i = 0;
+              for (String objectName: objectNames) {
+                objectList.add(new DeleteObject(objectName));
+                i++;
+                // Maximum 1000 objects are allowed in a request
+                if (i == 1000) {
+                  break;
+                }
+              }
+
+              if (i == 0) {
+                return;
+              }
+
+              errorList = removeObject(bucketName, objectList);
+            } catch (InvalidBucketNameException | NoSuchAlgorithmException | InsufficientDataException | IOException
+                     | InvalidKeyException | NoResponseException | XmlPullParserException | ErrorResponseException
+                     | InternalException e) {
+              this.error = new Result<>(null, e);
+            } finally {
+              if (errorList != null) {
+                this.errorIterator = errorList.iterator();
+              } else {
+                this.errorIterator = new LinkedList<DeleteError>().iterator();
+              }
+            }
+          }
+
+          @Override
+          public boolean hasNext() {
+            if (this.completed) {
+              return false;
+            }
+
+            if (this.error == null && this.errorIterator == null) {
+              populate();
+            }
+
+            if (this.error != null) {
+              return true;
+            }
+
+            if (this.errorIterator.hasNext()) {
+              return true;
+            }
+
+            this.completed = true;
+            return false;
+          }
+
+          @Override
+          public Result<DeleteError> next() {
+            if (this.completed) {
+              throw new NoSuchElementException();
+            }
+
+            if (this.error == null && this.errorIterator == null) {
+              populate();
+            }
+
+            if (this.error != null) {
+              this.completed = true;
+              return this.error;
+            }
+
+            if (this.errorIterator.hasNext()) {
+              return new Result<>(this.errorIterator.next(), null);
+            }
+
+            this.completed = true;
+            throw new NoSuchElementException();
+          }
+
+          @Override
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
+        };
+      }
+    };
+  }
+
   /**
    * Lists object information in given bucket.
    *
@@ -1932,14 +2091,217 @@ public final class MinioClient {
    *
    * @see #listObjects(String bucketName)
    * @see #listObjects(String bucketName, String prefix)
+   * @see #listObjects(String bucketName, String prefix, boolean recursive, boolean useVersion1)
    */
   public Iterable<Result<Item>> listObjects(final String bucketName, final String prefix, final boolean recursive) {
+    return listObjects(bucketName, prefix, recursive, false);
+  }
+
+
+  /**
+   * Lists object information as {@code Iterable<Result><Item>>} in given bucket, prefix, recursive flag and S3 API
+   * version to use.
+   *
+   * </p><b>Example:</b><br>
+   * <pre>{@code Iterable<Result<Item>> myObjects = minioClient.listObjects("my-bucketname", "my-object-prefix", true,
+   *                                    false);
+   * for (Result<Item> result : myObjects) {
+   *   Item item = result.get();
+   *   System.out.println(item.lastModified() + ", " + item.size() + ", " + item.objectName());
+   * } }</pre>
+   *
+   * @param bucketName Bucket name.
+   * @param prefix     Prefix string.  List objects whose name starts with `prefix`.
+   * @param recursive when false, emulates a directory structure where each listing returned is either a full object
+   *                  or part of the object's key up to the first '/'. All objects wit the same prefix up to the first
+   *                  '/' will be merged into one entry.
+   * @param useVersion1 If set, Amazon AWS S3 List Object V1 is used, else List Object V2 is used as default.
+   *
+   * @return an iterator of Result Items.
+   *
+   * @see #listObjects(String bucketName)
+   * @see #listObjects(String bucketName, String prefix)
+   * @see #listObjects(String bucketName, String prefix, boolean recursive)
+   */
+  public Iterable<Result<Item>> listObjects(final String bucketName, final String prefix, final boolean recursive,
+                                            final boolean useVersion1) {
+    if (useVersion1) {
+      return listObjectsV1(bucketName, prefix, recursive);
+    }
+
+    return listObjectsV2(bucketName, prefix, recursive);
+  }
+
+
+  private Iterable<Result<Item>> listObjectsV2(final String bucketName, final String prefix, final boolean recursive) {
+    return new Iterable<Result<Item>>() {
+      @Override
+      public Iterator<Result<Item>> iterator() {
+        return new Iterator<Result<Item>>() {
+          private ListBucketResult listBucketResult;
+          private Result<Item> error;
+          private Iterator<Item> itemIterator;
+          private Iterator<Prefix> prefixIterator;
+          private boolean completed = false;
+
+          private synchronized void populate() {
+            String delimiter = "/";
+            if (recursive) {
+              delimiter = null;
+            }
+
+            String continuationToken = null;
+            if (this.listBucketResult != null && delimiter != null) {
+              continuationToken = listBucketResult.nextContinuationToken();
+            }
+
+            this.listBucketResult = null;
+            this.itemIterator = null;
+            this.prefixIterator = null;
+
+            try {
+              this.listBucketResult = listObjectsV2(bucketName, continuationToken, prefix, delimiter);
+            } catch (InvalidBucketNameException | NoSuchAlgorithmException | InsufficientDataException | IOException
+                     | InvalidKeyException | NoResponseException | XmlPullParserException | ErrorResponseException
+                     | InternalException e) {
+              this.error = new Result<>(null, e);
+            } finally {
+              if (this.listBucketResult != null) {
+                this.itemIterator = this.listBucketResult.contents().iterator();
+                this.prefixIterator = this.listBucketResult.commonPrefixes().iterator();
+              } else {
+                this.itemIterator = new LinkedList<Item>().iterator();
+                this.prefixIterator = new LinkedList<Prefix>().iterator();
+              }
+            }
+          }
+
+          @Override
+          public boolean hasNext() {
+            if (this.completed) {
+              return false;
+            }
+
+            if (this.error == null && this.itemIterator == null && this.prefixIterator == null) {
+              populate();
+            }
+
+            if (this.error == null && !this.itemIterator.hasNext() && !this.prefixIterator.hasNext()
+                && this.listBucketResult.isTruncated()) {
+              populate();
+            }
+
+            if (this.error != null) {
+              return true;
+            }
+
+            if (this.itemIterator.hasNext()) {
+              return true;
+            }
+
+            if (this.prefixIterator.hasNext()) {
+              return true;
+            }
+
+            this.completed = true;
+            return false;
+          }
+
+          @Override
+          public Result<Item> next() {
+            if (this.completed) {
+              throw new NoSuchElementException();
+            }
+
+            if (this.error == null && this.itemIterator == null && this.prefixIterator == null) {
+              populate();
+            }
+
+            if (this.error == null && !this.itemIterator.hasNext() && !this.prefixIterator.hasNext()
+                && this.listBucketResult.isTruncated()) {
+              populate();
+            }
+
+            if (this.error != null) {
+              this.completed = true;
+              return this.error;
+            }
+
+            if (this.itemIterator.hasNext()) {
+              Item item = this.itemIterator.next();
+              return new Result<>(item, null);
+            }
+
+            if (this.prefixIterator.hasNext()) {
+              Prefix prefix = this.prefixIterator.next();
+              Item item;
+              try {
+                item = new Item(prefix.prefix(), true);
+              } catch (XmlPullParserException e) {
+                // special case: ignore the error as we can't propagate the exception in next()
+                item = null;
+              }
+
+              return new Result<>(item, null);
+            }
+
+            this.completed = true;
+            throw new NoSuchElementException();
+          }
+
+          @Override
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
+        };
+      }
+    };
+  }
+
+
+  /**
+   * Returns {@link ListBucketResult} of given bucket, marker, prefix and delimiter.
+   *
+   * @param bucketName Bucket name.
+   * @param marker     Marker string.  List objects whose name is greater than `marker`.
+   * @param prefix     Prefix string.  List objects whose name starts with `prefix`.
+   * @param delimiter  delimiter string.  Group objects whose name contains `delimiter`.
+   */
+  private ListBucketResult listObjectsV2(String bucketName, String continuationToken, String prefix, String delimiter)
+    throws InvalidBucketNameException, NoSuchAlgorithmException, InsufficientDataException, IOException,
+           InvalidKeyException, NoResponseException, XmlPullParserException, ErrorResponseException,
+           InternalException {
+    Map<String,String> queryParamMap = new HashMap<>();
+    queryParamMap.put("list-type", "2");
+
+    if (continuationToken != null) {
+      queryParamMap.put("continuation-token", continuationToken);
+    }
+
+    if (prefix != null) {
+      queryParamMap.put("prefix", prefix);
+    }
+
+    if (delimiter != null) {
+      queryParamMap.put("delimiter", delimiter);
+    }
+
+    HttpResponse response = executeGet(bucketName, null, null, queryParamMap);
+
+    ListBucketResult result = new ListBucketResult();
+    result.parseXml(response.body().charStream());
+    response.body().close();
+    return result;
+  }
+
+
+  private Iterable<Result<Item>> listObjectsV1(final String bucketName, final String prefix, final boolean recursive) {
     return new Iterable<Result<Item>>() {
       @Override
       public Iterator<Result<Item>> iterator() {
         return new Iterator<Result<Item>>() {
           private String lastObjectName;
-          private ListBucketResult listBucketResult;
+          private ListBucketResultV1 listBucketResult;
           private Result<Item> error;
           private Iterator<Item> itemIterator;
           private Iterator<Prefix> prefixIterator;
@@ -1965,7 +2327,7 @@ public final class MinioClient {
             this.prefixIterator = null;
 
             try {
-              this.listBucketResult = listObjects(bucketName, marker, prefix, delimiter, null);
+              this.listBucketResult = listObjectsV1(bucketName, marker, prefix, delimiter);
             } catch (InvalidBucketNameException | NoSuchAlgorithmException | InsufficientDataException | IOException
                      | InvalidKeyException | NoResponseException | XmlPullParserException | ErrorResponseException
                      | InternalException e) {
@@ -2066,7 +2428,7 @@ public final class MinioClient {
 
 
   /**
-   * Returns {@link ListBucketResult} of given bucket, marker, prefix, delimiter and maxKeys.
+   * Returns {@link ListBucketResultV1} of given bucket, marker, prefix and delimiter.
    *
    * @param bucketName Bucket name.
    * @param marker     Marker string.  List objects whose name is greater than `marker`.
@@ -2074,8 +2436,7 @@ public final class MinioClient {
    * @param delimiter  delimiter string.  Group objects whose name contains `delimiter`.
    * @param maxKeys    Maximum number of entries to be returned.
    */
-  private ListBucketResult listObjects(String bucketName, String marker, String prefix, String delimiter,
-                                       Integer maxKeys)
+  private ListBucketResultV1 listObjectsV1(String bucketName, String marker, String prefix, String delimiter)
     throws InvalidBucketNameException, NoSuchAlgorithmException, InsufficientDataException, IOException,
            InvalidKeyException, NoResponseException, XmlPullParserException, ErrorResponseException,
            InternalException {
@@ -2093,13 +2454,9 @@ public final class MinioClient {
       queryParamMap.put("delimiter", delimiter);
     }
 
-    if (maxKeys != null) {
-      queryParamMap.put("max-keys", maxKeys.toString());
-    }
-
     HttpResponse response = executeGet(bucketName, null, null, queryParamMap);
 
-    ListBucketResult result = new ListBucketResult();
+    ListBucketResultV1 result = new ListBucketResultV1();
     result.parseXml(response.body().charStream());
     response.body().close();
     return result;
@@ -2609,7 +2966,7 @@ public final class MinioClient {
    * @param policyType   Enum of {@link PolicyType}.
    *
    * </p><b>Example:</b><br>
-   * <pre>{@code setBucketPolicy("my-bucketname", "my-objectname", BucketPolicy.ReadOnly); }</pre>
+   * <pre>{@code setBucketPolicy("my-bucketname", "my-objectname", PolicyType.READ_ONLY); }</pre>
    */
   public void setBucketPolicy(String bucketName, String objectPrefix, PolicyType policyType)
     throws InvalidBucketNameException, InvalidObjectPrefixException, NoSuchAlgorithmException,
@@ -2628,6 +2985,97 @@ public final class MinioClient {
     policy.setPolicy(policyType, objectPrefix);
 
     setBucketPolicy(bucketName, policy);
+  }
+
+
+  /**
+   * Get bucket notification configuration
+   *
+   * @param bucketName   Bucket name.
+   *
+   * </p><b>Example:</b><br>
+   * <pre>{@code NotificationConfiguration notificationConfig = minioClient.getBucketNotification("my-bucketname");
+   * }</pre>
+   *
+   * @throws InvalidBucketNameException  upon invalid bucket name is given
+   * @throws NoResponseException         upon no response from server
+   * @throws IOException                 upon connection error
+   * @throws XmlPullParserException      upon parsing response xml
+   * @throws ErrorResponseException      upon unsuccessful execution
+   * @throws InternalException           upon internal library error
+   *
+   */
+  public NotificationConfiguration getBucketNotification(String bucketName)
+    throws InvalidBucketNameException, InvalidObjectPrefixException, NoSuchAlgorithmException,
+           InsufficientDataException, IOException, InvalidKeyException, NoResponseException,
+           XmlPullParserException, ErrorResponseException, InternalException {
+    Map<String,String> queryParamMap = new HashMap<>();
+    queryParamMap.put("notification", "");
+
+    HttpResponse response = executeGet(bucketName, null, null, queryParamMap);
+    NotificationConfiguration result = new NotificationConfiguration();
+    try {
+      result.parseXml(response.body().charStream());
+    } finally {
+      response.body().close();
+    }
+
+    return result;
+  }
+
+
+  /**
+   * Set bucket notification configuration
+   *
+   * @param bucketName   Bucket name.
+   * @param notificationConfiguration   Notification configuration to be set.
+   *
+   * </p><b>Example:</b><br>
+   * <pre>{@code minioClient.setBucketNotification("my-bucketname", notificationConfiguration);
+   * }</pre>
+   *
+   * @throws InvalidBucketNameException  upon invalid bucket name is given
+   * @throws NoResponseException         upon no response from server
+   * @throws IOException                 upon connection error
+   * @throws XmlPullParserException      upon parsing response xml
+   * @throws ErrorResponseException      upon unsuccessful execution
+   * @throws InternalException           upon internal library error
+   *
+   */
+  public void setBucketNotification(String bucketName, NotificationConfiguration notificationConfiguration)
+    throws InvalidBucketNameException, InvalidObjectPrefixException, NoSuchAlgorithmException,
+           InsufficientDataException, IOException, InvalidKeyException, NoResponseException,
+           XmlPullParserException, ErrorResponseException, InternalException {
+    Map<String,String> queryParamMap = new HashMap<>();
+    queryParamMap.put("notification", "");
+    HttpResponse response = executePut(bucketName, null, null, queryParamMap, notificationConfiguration.toString(), 0);
+    response.body().close();
+  }
+
+
+  /**
+   * Remove all bucket notification.
+   *
+   * @param bucketName   Bucket name.
+   *
+   * </p><b>Example:</b><br>
+   * <pre>{@code minioClient.removeAllBucketNotification("my-bucketname");
+   * }</pre>
+   *
+   * @throws InvalidBucketNameException  upon invalid bucket name is given
+   * @throws NoResponseException         upon no response from server
+   * @throws IOException                 upon connection error
+   * @throws XmlPullParserException      upon parsing response xml
+   * @throws ErrorResponseException      upon unsuccessful execution
+   * @throws InternalException           upon internal library error
+   *
+   */
+  public void removeAllBucketNotification(String bucketName)
+    throws InvalidBucketNameException, InvalidObjectPrefixException, NoSuchAlgorithmException,
+           InsufficientDataException, IOException, InvalidKeyException, NoResponseException,
+           XmlPullParserException, ErrorResponseException, InternalException {
+    NotificationConfiguration notificationConfiguration = new NotificationConfiguration();
+    setBucketNotification(bucketName, notificationConfiguration);
   }
 
 
@@ -2938,18 +3386,16 @@ public final class MinioClient {
 
     // Fixing issue https://github.com/minio/minio-java/issues/391
     String bodyContent = "";
+    Scanner scanner = new Scanner(response.body().charStream());
     try {
-      // read enitre body stream to string.
-      Scanner scanner = new java.util.Scanner(response.body().charStream()).useDelimiter("\\A");
+      // read entire body stream to string.
+      scanner.useDelimiter("\\A");
       if (scanner.hasNext()) {
         bodyContent = scanner.next();
       }
-    } catch (EOFException e) {
-      // Getting EOF exception is not an error.
-      // Just log it.
-      LOGGER.log(Level.WARNING, "EOF exception occured: " + e);
-    }  finally {
+    } finally {
       response.body().close();
+      scanner.close();
     }
 
     bodyContent = bodyContent.trim();

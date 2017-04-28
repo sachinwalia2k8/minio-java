@@ -1,5 +1,5 @@
 /*
- * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
+ * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,44 +16,36 @@
 
 package io.minio.messages;
 
-import java.util.Date;
-
 import org.xmlpull.v1.XmlPullParserException;
 
 import com.google.api.client.util.Key;
 
-import io.minio.DateFormat;
-
 
 /**
- * Helper class to parse Amazon AWS S3 response XML containing bucket information.
+ * Helper class to create Amazon AWS S3 request XML containing object information for Multiple object deletion.
  */
-@SuppressWarnings("SameParameterValue")
-public class Bucket extends XmlEntity {
-  @Key("Name")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "URF_UNREAD_FIELD")
+public class DeleteObject extends XmlEntity {
+  @Key("Key")
   private String name;
-  @Key("CreationDate")
-  private String creationDate;
+  @Key("VersionId")
+  private String versionId;
 
 
-  public Bucket() throws XmlPullParserException {
+  public DeleteObject(String name) throws XmlPullParserException {
+    this(name, null);
+  }
+
+
+  /**
+   * Constructs new delete object for given name and version ID.
+   *
+   */
+  public DeleteObject(String name, String versionId) throws XmlPullParserException {
     super();
-    super.name = "Bucket";
-  }
+    super.name = "Object";
 
-
-  /**
-   * Returns bucket name.
-   */
-  public String name() {
-    return name;
-  }
-
-
-  /**
-   * Returns creation date.
-   */
-  public Date creationDate() {
-    return DateFormat.RESPONSE_DATE_FORMAT.parseDateTime(creationDate).toDate();
+    this.name = name;
+    this.versionId = versionId;
   }
 }

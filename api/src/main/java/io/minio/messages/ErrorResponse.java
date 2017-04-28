@@ -16,12 +16,13 @@
 
 package io.minio.messages;
 
-import com.google.api.client.xml.XmlNamespaceDictionary;
-import com.google.api.client.util.Key;
+import java.io.IOException;
+import java.io.Reader;
+
 import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.Reader;
-import java.io.IOException;
+import com.google.api.client.util.Key;
+import com.google.api.client.xml.XmlNamespaceDictionary;
 
 import io.minio.ErrorCode;
 
@@ -32,21 +33,21 @@ import io.minio.ErrorCode;
 @SuppressWarnings("unused")
 public class ErrorResponse extends XmlEntity {
   @Key("Code")
-  private String code;
+  protected String code;
   @Key("Message")
-  private String message;
+  protected String message;
   @Key("BucketName")
-  private String bucketName;
+  protected String bucketName;
   @Key("Key")
-  private String objectName;
+  protected String objectName;
   @Key("Resource")
-  private String resource;
+  protected String resource;
   @Key("RequestId")
-  private String requestId;
+  protected String requestId;
   @Key("HostId")
-  private String hostId;
+  protected String hostId;
 
-  private ErrorCode errorCode;
+  protected ErrorCode errorCode;
 
 
   public ErrorResponse() throws XmlPullParserException {

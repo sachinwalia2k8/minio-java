@@ -1,5 +1,5 @@
 /*
- * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
+ * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,34 +16,29 @@
 
 package io.minio.messages;
 
-import java.util.Date;
-
 import org.xmlpull.v1.XmlPullParserException;
 
 import com.google.api.client.util.Key;
 
-import io.minio.DateFormat;
-
 
 /**
- * Helper class to parse Amazon AWS S3 response XML containing bucket information.
+ * Helper class to parse Amazon AWS S3 response XML containing filter rule.
  */
-@SuppressWarnings("SameParameterValue")
-public class Bucket extends XmlEntity {
+public class FilterRule extends XmlEntity {
   @Key("Name")
   private String name;
-  @Key("CreationDate")
-  private String creationDate;
+  @Key("Value")
+  private String value;
 
 
-  public Bucket() throws XmlPullParserException {
+  public FilterRule() throws XmlPullParserException {
     super();
-    super.name = "Bucket";
+    super.name = "FilterRule";
   }
 
 
   /**
-   * Returns bucket name.
+   * Returns filter name.
    */
   public String name() {
     return name;
@@ -51,9 +46,25 @@ public class Bucket extends XmlEntity {
 
 
   /**
-   * Returns creation date.
+   * Sets filter name.
    */
-  public Date creationDate() {
-    return DateFormat.RESPONSE_DATE_FORMAT.parseDateTime(creationDate).toDate();
+  public void setName(String name) {
+    this.name = name;
+  }
+
+
+  /**
+   * Returns filter value.
+   */
+  public String value() {
+    return value;
+  }
+
+
+  /**
+   * Sets filter value.
+   */
+  public void setValue(String value) {
+    this.value = value;
   }
 }

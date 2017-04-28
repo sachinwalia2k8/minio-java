@@ -1,5 +1,5 @@
 /*
- * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2015 Minio, Inc.
+ * Minio Java SDK for Amazon S3 Compatible Cloud Storage, (C) 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,33 +16,31 @@
 
 package io.minio.messages;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.io.IOException;
+import java.io.Reader;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-import com.google.api.client.util.Key;
-
 
 /**
- * Helper class to parse Amazon AWS S3 response XML containing list of bucket information.
+ * Helper class to parse Amazon AWS S3 error response XML.
  */
-@SuppressWarnings("WeakerAccess")
-public class Buckets extends XmlEntity {
-  @Key("Bucket")
-  private List<Bucket> bucketList = new LinkedList<>();
-
-
-  public Buckets() throws XmlPullParserException {
+@SuppressWarnings("unused")
+public class DeleteError extends ErrorResponse {
+  /**
+   * Constructs a new ErrorResponse object by reading given reader stream.
+   */
+  public DeleteError() throws XmlPullParserException {
     super();
-    super.name = "Buckets";
+    super.name = "Error";
   }
 
 
   /**
-   * Returns List of Buckets.
+   * Constructs a new ErrorResponse object by reading given reader stream.
    */
-  public List<Bucket> bucketList() {
-    return bucketList;
+  public DeleteError(Reader reader) throws IOException, XmlPullParserException {
+    this();
+    this.parseXml(reader);
   }
 }
