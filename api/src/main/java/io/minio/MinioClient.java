@@ -18,12 +18,12 @@
 package io.minio;
 
 import com.google.common.io.ByteStreams;
-import com.squareup.okhttp.HttpUrl;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -170,7 +170,7 @@ public final class MinioClient {
 
   private String userAgent = DEFAULT_USER_AGENT;
 
-  private OkHttpClient httpClient = new OkHttpClient();
+  private OkHttpClient httpClient = new OkHttpClient.Builder().build();
 
 
   /**
@@ -686,9 +686,11 @@ public final class MinioClient {
    * @param readTimeout       HTTP read timeout in milliseconds.
    */
   public void setTimeout(long connectTimeout, long writeTimeout, long readTimeout) {
-    httpClient.setConnectTimeout(connectTimeout, TimeUnit.MILLISECONDS);
-    httpClient.setWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
-    httpClient.setReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
+	  httpClient = httpClient.newBuilder()
+		  .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+		  .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
+		  .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+		  .build();
   }
 
   /**
@@ -915,8 +917,8 @@ public final class MinioClient {
 
     if (this.traceStream != null) {
       this.traceStream.println("---------START-HTTP---------");
-      String encodedPath = request.httpUrl().encodedPath();
-      String encodedQuery = request.httpUrl().encodedQuery();
+      String encodedPath = request.url().encodedPath();
+      String encodedQuery = request.url().encodedQuery();
       if (encodedQuery != null) {
         encodedPath += "?" + encodedQuery;
       }
@@ -1012,7 +1014,7 @@ public final class MinioClient {
                                       + "https://github.com/minio/minio-java/issues");
       }
 
-      errorResponse = new ErrorResponse(ec, bucketName, objectName, request.httpUrl().encodedPath(),
+      errorResponse = new ErrorResponse(ec, bucketName, objectName, request.url().encodedPath(),
                                         header.xamzRequestId(), header.xamzId2());
     }
 
@@ -1291,7 +1293,7 @@ public final class MinioClient {
            InternalException {
     Request request = createRequest(Method.GET, bucketName, objectName, getRegion(bucketName),
         null, null, null, null, 0);
-    HttpUrl url = request.httpUrl();
+    HttpUrl url = request.url();
     return url.toString();
   }
 
